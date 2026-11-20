@@ -1,505 +1,404 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>NOVA V3 AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NOVA V3</title>
 <style>
-  :root {
-    --primary: #00d4ff;
-    --glow: rgba(0, 212, 255, 0.58);
-    --bg-grad: radial-gradient(circle at 50% 35%, #0b2948 0%, #030a16 75%, #010409 100%);
-    --panel-bg: rgba(6, 24, 48, 0.76);
-    --border-col: rgba(0, 212, 255, 0.48);
-    --text-main: #e6f7ff;
-    --accent-soft: #38bdf8;
-  }
-
-  body.shadow-mode {
-    --primary: #ff1e42;
-    --glow: rgba(255, 30, 66, 0.68);
-    --bg-grad: radial-gradient(circle at 50% 35%, #380610 0%, #120206 75%, #050002 100%);
-    --panel-bg: rgba(34, 4, 10, 0.85);
-    --border-col: rgba(255, 30, 66, 0.58);
-    --text-main: #ffe6ea;
-    --accent-soft: #ff4d6d;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-  body {
-    background: var(--bg-grad);
-    color: var(--text-main);
-    height: 100vh;
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: background 0.5s ease;
+    background: #000;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #fff;
   }
-
-  .cyber-grid {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image:
-      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 28px 28px;
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  #bg {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    transition: opacity 0.5s ease;
   }
-
-  body.standby-mode .hud-col,
-  body.standby-mode .hacker-panels,
-  body.standby-mode .status-pills .pill {
-    display: none !important;
+  .overlay-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 90px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent);
+    pointer-events: none; z-index: 2;
   }
-  body.standby-mode .stage {
-    grid-template-columns: 1fr;
+  .overlay-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 140px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    pointer-events: none; z-index: 2;
   }
-
-  .top-bar {
-    position: relative; z-index: 2;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 14px;
-    background: var(--panel-bg);
-    border-bottom: 1px solid var(--border-col);
-    box-shadow: 0 0 18px var(--glow);
+  .overlay-left {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 110px;
+    background: linear-gradient(to right, rgba(0,0,0,0.7), transparent);
+    pointer-events: none; z-index: 2;
   }
-  .brand-title { font-size: 18px; font-weight: 800; letter-spacing: 1.5px; color: var(--primary); text-shadow: 0 0 10px var(--glow); }
-  .brand-sub { font-size: 11px; opacity: 0.85; }
-  .status-pills { display: flex; gap: 6px; align-items: center; font-size: 11px; }
-  .pill {
-    padding: 4px 8px; border-radius: 12px;
-    border: 1px solid var(--border-col);
-    background: rgba(0,0,0,0.4);
+  .overlay-right {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 160px;
+    background: linear-gradient(to left, rgba(0,0,0,0.65), transparent);
+    pointer-events: none; z-index: 2;
   }
-
-  .power-btn {
-    padding: 5px 10px; border-radius: 14px; border: 1px solid var(--primary);
-    background: var(--primary); color: #000; font-weight: 700; font-size: 11px;
-    cursor: pointer;
+  #header {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 10;
   }
-  .power-btn.off { background: transparent; color: var(--primary); }
-
-  .stage {
-    position: relative; z-index: 2;
-    flex: 1;
-    display: grid;
-    grid-template-columns: 92px 1fr 104px;
-    gap: 6px;
-    padding: 8px;
-    align-items: center;
+  .avatar-small {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 2px solid var(--accent);
+    object-fit: cover;
+    box-shadow: 0 0 12px var(--accent-glow);
   }
-
-  .hud-col {
-    display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: center;
+  .title-block { margin-left: 10px; flex: 1; }
+  .title-block h1 {
+    font-size: 20px; font-weight: 700; letter-spacing: 1px;
+    color: var(--accent); text-shadow: 0 0 10px var(--accent-glow);
   }
-
-  .hud-card {
-    background: var(--panel-bg);
-    border: 1px solid var(--border-col);
-    border-radius: 10px;
-    padding: 8px 6px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.5), inset 0 0 8px var(--glow);
-    font-size: 10px;
-  }
-  .hud-card h4 {
-    font-size: 10px; color: var(--primary); margin-bottom: 5px;
-    text-transform: uppercase; letter-spacing: 0.6px;
-    border-bottom: 1px solid var(--border-col); padding-bottom: 3px;
+  .title-block p { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+  .status-right { text-align: right; font-size: 12px; }
+  .status-right .time { font-weight: 600; }
+  .status-right .date { font-size: 10px; opacity: 0.7; }
+  #sidebar {
+    position: absolute; left: 8px; top: 70px; bottom: 130px;
+    width: 92px; z-index: 10;
+    display: flex; flex-direction: column; gap: 6px;
   }
   .nav-item {
-    padding: 5px 4px; margin-bottom: 3px; border-radius: 6px;
-    background: rgba(255,255,255,0.04); cursor: pointer; text-align: center;
-  }
-  .nav-item.active {
-    background: var(--primary); color: #000; font-weight: 700;
-  }
-
-  .avatar-zone {
-    position: relative;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .pulse-ring {
-    position: absolute;
-    width: 220px; height: 220px;
-    border-radius: 50%;
-    border: 2px solid var(--primary);
-    box-shadow: 0 0 30px var(--glow), inset 0 0 30px var(--glow);
-    animation: pulseIdle 2.6s infinite ease-in-out;
-    pointer-events: none;
-  }
-  @keyframes pulseIdle {
-    0%, 100% { transform: scale(0.94); opacity: 0.55; }
-    50% { transform: scale(1.07); opacity: 0.95; }
-  }
-
-  svg#novaAvatar {
-    width: 220px; height: 325px; z-index: 2;
-    filter: drop-shadow(0 0 15px var(--glow));
-  }
-
-  .body-breathe { animation: breathe 3s infinite ease-in-out; transform-origin: 150px 260px; }
-  @keyframes breathe {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-4px); }
-  }
-
-  .head-group { transition: transform 0.35s ease; transform-origin: 150px 115px; }
-  .left-arm, .right-arm { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  .left-arm { transform-origin: 115px 150px; }
-  .right-arm { transform-origin: 185px 150px; }
-  .left-leg { transform-origin: 135px 255px; animation: legSway 4s infinite ease-in-out; }
-  .right-leg { transform-origin: 165px 255px; animation: legSway 4s infinite ease-in-out reverse; }
-
-  @keyframes legSway {
-    0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(2.5deg); }
-  }
-
-  .speaking #mouthPath {
-    animation: mouthTalk 0.2s infinite alternate;
-    transform-origin: 150px 112px;
-  }
-  @keyframes mouthTalk {
-    0% { transform: scaleY(0.4); }
-    100% { transform: scaleY(1.7); }
-  }
-
-  body.emotion-angry .left-arm { transform: rotate(-60deg); }
-  body.emotion-angry .right-arm { transform: rotate(50deg); }
-  body.emotion-angry .head-group { transform: rotate(-7deg) translateY(2px); }
-
-  body.emotion-shy .left-arm { transform: rotate(-130deg) translate(14px, -12px); }
-  body.emotion-shy .right-arm { transform: rotate(130deg) translate(-14px, -12px); }
-  body.emotion-shy .head-group { transform: rotate(7deg) translateY(4px); }
-
-  body.emotion-happy .right-arm { animation: happyWave 1.5s infinite ease-in-out; }
-  @keyframes happyWave {
-    0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(24deg); }
-  }
-
-  .speech-box {
-    position: relative; z-index: 3;
-    width: 96%;
-    background: var(--panel-bg);
-    border: 1px solid var(--primary);
-    border-radius: 12px;
-    padding: 8px 10px;
-    font-size: 12px;
-    text-align: center;
-    box-shadow: 0 0 15px var(--glow);
-    margin-top: -10px;
-  }
-
-  .hacker-panels {
-    display: none;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 5px;
-    padding: 0 8px 6px 8px;
-    position: relative; z-index: 2;
-  }
-  body.shadow-mode .hacker-panels { display: grid; }
-
-  .progress-bar {
-    height: 5px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; margin-top: 4px;
-  }
-  .progress-fill {
-    height: 100%; width: 78%; background: var(--primary);
-    animation: scanMove 2.2s infinite linear;
-  }
-  @keyframes scanMove {
-    0% { width: 30%; }
-    50% { width: 95%; }
-    100% { width: 30%; }
-  }
-
-  .bottom-bar {
-    position: relative; z-index: 2;
-    padding: 8px 12px 14px 12px;
-    background: var(--panel-bg);
-    border-top: 1px solid var(--border-col);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .wave-row {
-    display: flex; align-items: center; justify-content: center; gap: 4px; height: 22px;
-  }
-  .wave-bar {
-    width: 4px; height: 6px; border-radius: 3px; background: var(--primary);
-    transition: height 0.1s ease;
-  }
-  .voice-trigger {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 14px; border-radius: 20px;
-    border: 1px solid var(--primary);
     background: rgba(0,0,0,0.45);
-    font-size: 12px; cursor: pointer;
+    border: 1px solid var(--accent-dim);
+    border-radius: 10px;
+    padding: 9px 6px;
+    text-align: center;
+    font-size: 10px;
+    color: #eee;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s;
   }
+  .nav-item:active, .nav-item.active {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 14px var(--accent-glow);
+  }
+  .nav-item .icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  #right-panels {
+    position: absolute; right: 8px; top: 70px; bottom: 130px;
+    width: 148px; z-index: 10;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .panel {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--accent-dim);
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(8px);
+    font-size: 11px;
+  }
+  .panel h3 {
+    font-size: 11px; color: var(--accent);
+    margin-bottom: 6px; letter-spacing: 0.5px;
+    text-shadow: 0 0 6px var(--accent-glow);
+  }
+  .status-row {
+    display: flex; align-items: center; gap: 6px;
+    margin: 4px 0; font-size: 10px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #00e676; box-shadow: 0 0 6px #00e676; }
+  .tool-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px; margin-top: 4px;
+  }
+  .tool-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 7px 2px;
+    text-align: center;
+    font-size: 9px;
+  }
+  .tool-btn:active { background: var(--accent); color: #000; }
+  #chat-bubble {
+    position: absolute;
+    left: 110px; right: 165px;
+    top: 78px;
+    z-index: 9;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--accent-dim);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(10px);
+    max-width: 280px;
+  }
+  #chat-bubble .msg { font-size: 13px; line-height: 1.35; color: #f0f0f0; }
+  #chat-bubble .wave {
+    margin-top: 8px; height: 18px;
+    display: flex; align-items: center; gap: 2px;
+  }
+  .bar {
+    width: 3px; background: var(--accent);
+    border-radius: 2px;
+    animation: wave 1.1s ease-in-out infinite;
+  }
+  @keyframes wave {
+    0%,100% { height: 4px; }
+    50% { height: 16px; }
+  }
+  #voice-bar {
+    position: absolute; bottom: 18px; left: 16px; right: 16px;
+    height: 48px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--accent);
+    border-radius: 24px;
+    display: flex; align-items: center; padding: 0 16px;
+    z-index: 12;
+    box-shadow: 0 0 20px var(--accent-glow);
+    backdrop-filter: blur(10px);
+  }
+  #voice-bar .mic { font-size: 20px; margin-right: 10px; color: var(--accent); }
+  #voice-bar .hint { flex: 1; font-size: 12px; opacity: 0.9; }
+  #voice-bar .listening {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #00e676; box-shadow: 0 0 8px #00e676;
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  #emotion {
+    position: absolute; bottom: 78px; left: 12px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--accent-dim);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 11px;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+  }
+  #memory {
+    position: absolute; bottom: 78px; right: 12px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--accent-dim);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 10px;
+    z-index: 10;
+    min-width: 120px;
+  }
+  .mem-bar {
+    height: 5px; background: rgba(255,255,255,0.15);
+    border-radius: 3px; margin-top: 4px; overflow: hidden;
+  }
+  .mem-fill {
+    height: 100%; width: 68%;
+    background: var(--accent);
+    border-radius: 3px;
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  body.normal {
+    --accent: #00b4ff;
+    --accent-dim: rgba(0,180,255,0.45);
+    --accent-glow: rgba(0,180,255,0.55);
+  }
+  body.hacker {
+    --accent: #ff0033;
+    --accent-dim: rgba(255,0,51,0.5);
+    --accent-glow: rgba(255,0,51,0.6);
+  }
+  .hacker-only { display: none; }
+  body.hacker .hacker-only { display: block; }
+  body.hacker .normal-only { display: none; }
 </style>
 </head>
-<body class="emotion-happy">
-  <div class="cyber-grid"></div>
+<body class="normal">
+<div id="root">
+  <div id="bg"></div>
+  <div class="overlay-top"></div>
+  <div class="overlay-bottom"></div>
+  <div class="overlay-left"></div>
+  <div class="overlay-right"></div>
 
-  <div class="top-bar">
-    <div>
-      <div class="brand-title" id="modeBadge">NOVA 👑</div>
-      <div class="brand-sub" id="modeSub">Your Personal AI Assistant ♡</div>
+  <div id="header">
+    <div style="display:flex;align-items:center;">
+      <img id="small-avatar" class="avatar-small" src="nova_normal.png" alt="">
+      <div class="title-block">
+        <h1 id="app-title">NOVA <span style="font-size:14px">👑</span></h1>
+        <p id="app-subtitle">Your Personal AI Assistant</p>
+      </div>
     </div>
-    <div class="status-pills">
-      <span class="pill" id="batteryText">🔋 87%</span>
-      <button class="power-btn" id="standbyBtn" onclick="toggleStandbyUi()">FULL</button>
-      <button class="power-btn" id="alwaysOnBtn" onclick="togglePower()">ON</button>
+    <div class="status-right">
+      <div class="time" id="clock">10:45 PM</div>
+      <div class="date" id="date">Sat, Nov 08, 2026</div>
     </div>
   </div>
 
-  <div class="stage">
-    <div class="hud-col">
-      <div class="hud-card">
-        <h4>Mode</h4>
-        <div class="nav-item active" id="btnNormal" onclick="changeMode('normal')">Normal</div>
-        <div class="nav-item" id="btnShadow" onclick="changeMode('shadow')">Hacker</div>
-      </div>
-      <div class="hud-card">
-        <h4>Emotion</h4>
-        <div id="emotionLabel" style="font-weight:700; color:var(--primary); text-align:center;">Happy ♡</div>
-      </div>
-    </div>
+  <div id="sidebar">
+    <div class="nav-item normal-only active" data-cmd="home"><span class="icon">🏠</span>Home</div>
+    <div class="nav-item normal-only" data-cmd="assistant"><span class="icon">🤖</span>Assistant</div>
+    <div class="nav-item normal-only" data-cmd="developer"><span class="icon">💻</span>Developer</div>
+    <div class="nav-item normal-only" data-cmd="tools"><span class="icon">🛠️</span>Tools</div>
+    <div class="nav-item normal-only" data-cmd="settings"><span class="icon">⚙️</span>Settings</div>
+    <div class="nav-item normal-only" data-cmd="more"><span class="icon">☰</span>More</div>
 
-    <div class="avatar-zone">
-      <div class="pulse-ring"></div>
-      <svg id="novaAvatar" viewBox="0 0 300 420">
-        <g class="body-breathe">
-          <path d="M95,90 Q70,200 85,310 Q150,330 215,310 Q230,200 205,90 Z" fill="#0d1b2a" stroke="var(--primary)" stroke-width="2"/>
-          <g class="left-leg">
-            <rect x="126" y="255" width="16" height="115" rx="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-            <path d="M124,330 L144,330 L144,375 L122,375 Z" fill="#111827" stroke="var(--primary)" stroke-width="1.5"/>
-          </g>
-          <g class="right-leg">
-            <rect x="158" y="255" width="16" height="115" rx="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-            <path d="M156,330 L176,330 L178,375 L156,375 Z" fill="#111827" stroke="var(--primary)" stroke-width="1.5"/>
-          </g>
-          <path d="M118,145 L182,145 L195,260 L105,260 Z" fill="#111827" stroke="var(--primary)" stroke-width="2"/>
-          <polygon points="150,175 158,188 150,201 142,188" fill="var(--primary)"/>
-          <g class="left-arm">
-            <rect x="96" y="148" width="15" height="92" rx="7" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-            <circle cx="103" cy="242" r="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-          </g>
-          <g class="right-arm">
-            <rect x="189" y="148" width="15" height="92" rx="7" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-            <circle cx="197" cy="242" r="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
-          </g>
-          <g class="head-group">
-            <ellipse cx="150" cy="95" rx="36" ry="42" fill="#ffe5dc" stroke="var(--primary)" stroke-width="2"/>
-            <path d="M112,88 Q120,45 150,45 Q180,45 188,88 Q170,68 150,74 Q130,68 112,88 Z" fill="#0d1b2a" stroke="var(--primary)" stroke-width="1.5"/>
-            <circle cx="122" cy="64" r="6" fill="var(--primary)"/>
-            <path id="browLeft" d="M128,82 Q136,79 143,82" stroke="#1e293b" stroke-width="2.5" fill="none"/>
-            <path id="browRight" d="M157,82 Q164,79 172,82" stroke="#1e293b" stroke-width="2.5" fill="none"/>
-            <ellipse cx="136" cy="92" rx="5.5" ry="6.5" fill="var(--primary)"/>
-            <ellipse cx="164" cy="92" rx="5.5" ry="6.5" fill="var(--primary)"/>
-            <circle cx="137" cy="90" r="2" fill="#fff"/>
-            <circle cx="165" cy="90" r="2" fill="#fff"/>
-            <ellipse id="blushL" cx="127" cy="102" rx="6" ry="3" fill="#ff4d6d" opacity="0"/>
-            <ellipse id="blushR" cx="173" cy="102" rx="6" ry="3" fill="#ff4d6d" opacity="0"/>
-            <path id="mouthPath" d="M143,112 Q150,118 157,112" stroke="#e11d48" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          </g>
-        </g>
-      </svg>
+    <div class="nav-item hacker-only active" data-cmd="terminal"><span class="icon">⬛</span>Terminal</div>
+    <div class="nav-item hacker-only" data-cmd="system"><span class="icon">🖥️</span>System</div>
+    <div class="nav-item hacker-only" data-cmd="developer"><span class="icon">💻</span>Developer</div>
+    <div class="nav-item hacker-only" data-cmd="network"><span class="icon">🌐</span>Network</div>
+    <div class="nav-item hacker-only" data-cmd="security"><span class="icon">🛡️</span>Security</div>
+    <div class="nav-item hacker-only" data-cmd="files"><span class="icon">📁</span>File Manager</div>
+    <div class="nav-item hacker-only" data-cmd="more"><span class="icon">☰</span>More</div>
+  </div>
 
-      <div class="speech-box" id="novaReplyBox">
-        হ্যালো মাস্টার... ♡ আমি শুনছি, কী করতে হবে বলো?
-      </div>
-    </div>
-
-    <div class="hud-col">
-      <div class="hud-card">
-        <h4>System</h4>
-        <div>AI: <span style="color:var(--primary)">Active</span></div>
-        <div>Voice: <span style="color:var(--primary)">Live</span></div>
-        <div>Memory: <span style="color:var(--primary)">Saved</span></div>
-      </div>
-      <div class="hud-card">
-        <h4>Active Task</h4>
-        <div id="taskStatusText" style="color:var(--accent-soft)">Ready & Listening</div>
-      </div>
+  <div id="chat-bubble">
+    <div class="msg" id="chat-msg">Hello Master... 💙<br>How can I help you today?</div>
+    <div class="wave" id="wave">
+      <div class="bar" style="animation-delay:0s"></div>
+      <div class="bar" style="animation-delay:0.1s"></div>
+      <div class="bar" style="animation-delay:0.2s"></div>
+      <div class="bar" style="animation-delay:0.3s"></div>
+      <div class="bar" style="animation-delay:0.4s"></div>
+      <div class="bar" style="animation-delay:0.5s"></div>
+      <div class="bar" style="animation-delay:0.6s"></div>
     </div>
   </div>
 
-  <div class="hacker-panels">
-    <div class="hud-card">
-      <h4>1. Live Speech</h4>
-      <div id="liveTranscript" style="min-height:28px; color:#fff;">Listening...</div>
+  <div id="right-panels">
+    <div class="panel normal-only">
+      <h3>⚡ System Status</h3>
+      <div class="status-row"><div class="dot"></div> AI: Active</div>
+      <div class="status-row"><div class="dot"></div> Voice Control: On</div>
+      <div class="status-row"><div class="dot"></div> Phone Control: Enabled</div>
+      <div class="status-row"><div class="dot"></div> Internet: Connected</div>
     </div>
-    <div class="hud-card">
-      <h4>2. Active Task</h4>
-      <div id="hackerTaskName">NOVA Core</div>
-      <div class="progress-bar"><div class="progress-fill"></div></div>
+    <div class="panel normal-only">
+      <h3>🚀 Quick Tools</h3>
+      <div class="tool-grid">
+        <div class="tool-btn" data-cmd="apps">📱<br>Apps</div>
+        <div class="tool-btn" data-cmd="web">🌐<br>Web</div>
+        <div class="tool-btn" data-cmd="files">📁<br>Files</div>
+        <div class="tool-btn" data-cmd="notes">📝<br>Notes</div>
+        <div class="tool-btn" data-cmd="music">🎵<br>Music</div>
+        <div class="tool-btn" data-cmd="camera">📷<br>Camera</div>
+      </div>
     </div>
-    <div class="hud-card">
-      <h4>3. System Log</h4>
-      <div>CPU: 42% | RAM: 68%</div>
-      <div style="color:var(--primary)">Memory Synced</div>
+    <div class="panel hacker-only">
+      <h3>🔴 Live System</h3>
+      <div class="status-row">CPU <span style="margin-left:auto" id="cpu">42%</span></div>
+      <div class="status-row">RAM <span style="margin-left:auto" id="ram">71%</span></div>
+      <div class="status-row">GPU <span style="margin-left:auto" id="gpu">65%</span></div>
+      <div class="status-row">Net <span style="margin-left:auto" id="net">12%</span></div>
+    </div>
+    <div class="panel hacker-only">
+      <h3>⚙️ Active Process</h3>
+      <div class="status-row"><div class="dot"></div> NOVA Core</div>
+      <div class="status-row"><div class="dot"></div> Terminal</div>
+      <div class="status-row"><div class="dot"></div> Security Scan</div>
     </div>
   </div>
 
-  <div class="bottom-bar">
-    <div class="wave-row" id="waveContainer"></div>
-    <div class="voice-trigger" onclick="triggerMic()">
-      <span id="micStatusText">🎙️ "NOVA" বলে কথা বলুন...</span>
-      <span style="color:var(--primary); font-weight:700;">TAP</span>
-    </div>
+  <div id="emotion">
+    <span id="emotion-icon">😊</span> Emotion<br>
+    <strong id="emotion-text">Happy</strong> 💙
   </div>
+
+  <div id="memory">
+    Memory Usage
+    <div class="mem-bar"><div class="mem-fill" id="mem-fill"></div></div>
+    <div style="margin-top:3px;text-align:right" id="mem-pct">68%</div>
+  </div>
+
+  <div id="voice-bar">
+    <span class="mic">🎙️</span>
+    <span class="hint" id="voice-hint">Say "NOVA" to wake me up...</span>
+    <div class="listening" id="listening-dot"></div>
+  </div>
+</div>
 
 <script>
-  const waveContainer = document.getElementById('waveContainer');
-  const bars = [];
-  for (let i = 0; i < 24; i++) {
-    const b = document.createElement('div');
-    b.className = 'wave-bar';
-    waveContainer.appendChild(b);
-    bars.push(b);
-  }
+  let currentTheme = 'normal';
+  const bg = document.getElementById('bg');
+  const body = document.body;
 
-  let alwaysOn = true;
-  let isStandby = false;
-
-  function setMode(mode) {
-    if (mode === 'shadow') {
-      document.body.classList.add('shadow-mode');
-      document.getElementById('modeBadge').innerText = 'NOVA 💀';
-      document.getElementById('modeSub').innerText = 'Hacker / Shadow Mode ///';
-      document.getElementById('btnShadow').classList.add('active');
-      document.getElementById('btnNormal').classList.remove('active');
+  function setTheme(theme) {
+    currentTheme = theme;
+    body.className = theme;
+    if (theme === 'hacker') {
+      bg.style.backgroundImage = "url('nova_hacker.png')";
+      document.getElementById('app-title').innerHTML = 'NOVA <span style="font-size:14px">☠️</span>';
+      document.getElementById('app-subtitle').textContent = 'Hacker Mode ///';
+      document.getElementById('chat-msg').innerHTML = 'Working in Hacker Mode...<br>What do you want to do?';
+      document.getElementById('voice-hint').textContent = 'Say "NOVA" for voice command...';
+      document.getElementById('small-avatar').src = 'nova_hacker.png';
+      document.getElementById('emotion-icon').textContent = '😈';
+      document.getElementById('emotion-text').textContent = 'Focused';
     } else {
-      document.body.classList.remove('shadow-mode');
-      document.getElementById('modeBadge').innerText = 'NOVA 👑';
-      document.getElementById('modeSub').innerText = 'Your Personal AI Assistant ♡';
-      document.getElementById('btnNormal').classList.add('active');
-      document.getElementById('btnShadow').classList.remove('active');
+      bg.style.backgroundImage = "url('nova_normal.png')";
+      document.getElementById('app-title').innerHTML = 'NOVA <span style="font-size:14px">👑</span>';
+      document.getElementById('app-subtitle').textContent = 'Your Personal AI Assistant';
+      document.getElementById('chat-msg').innerHTML = 'Hello Master... 💙<br>How can I help you today?';
+      document.getElementById('voice-hint').textContent = 'Say "NOVA" to wake me up...';
+      document.getElementById('small-avatar').src = 'nova_normal.png';
+      document.getElementById('emotion-icon').textContent = '😊';
+      document.getElementById('emotion-text').textContent = 'Happy';
     }
   }
 
-  function changeMode(mode) {
-    setMode(mode);
-    if (window.NovaBridge) NovaBridge.switchMode(mode);
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('date').textContent = now.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric', year:'numeric'});
   }
+  setInterval(updateClock, 10000);
+  updateClock();
 
-  function setStandbyMode(standby) {
-    isStandby = standby;
-    const btn = document.getElementById('standbyBtn');
-    if (standby) {
-      document.body.classList.add('standby-mode');
-      btn.innerText = 'MINI';
-    } else {
-      document.body.classList.remove('standby-mode');
-      btn.innerText = 'FULL';
-    }
-  }
+  setInterval(() => {
+    if (currentTheme !== 'hacker') return;
+    document.getElementById('cpu').textContent = (30 + Math.random()*40|0) + '%';
+    document.getElementById('ram').textContent = (55 + Math.random()*30|0) + '%';
+    document.getElementById('gpu').textContent = (40 + Math.random()*40|0) + '%';
+    document.getElementById('net').textContent = (5 + Math.random()*25|0) + '%';
+  }, 2500);
 
-  function toggleStandbyUi() {
-    setStandbyMode(!isStandby);
-    if (window.NovaBridge) NovaBridge.toggleStandby(isStandby);
-  }
-
-  function setEmotion(emotion) {
-    document.body.classList.remove('emotion-happy', 'emotion-angry', 'emotion-shy', 'emotion-hacker');
-    document.body.classList.add('emotion-' + emotion);
-
-    const label = document.getElementById('emotionLabel');
-    const browL = document.getElementById('browLeft');
-    const browR = document.getElementById('browRight');
-    const blushL = document.getElementById('blushL');
-    const blushR = document.getElementById('blushR');
-    const mouth = document.getElementById('mouthPath');
-
-    blushL.setAttribute('opacity', '0');
-    blushR.setAttribute('opacity', '0');
-
-    if (emotion === 'angry') {
-      label.innerText = 'Angry 💢';
-      browL.setAttribute('d', 'M128,78 L143,85');
-      browR.setAttribute('d', 'M172,78 L157,85');
-      mouth.setAttribute('d', 'M143,116 Q150,109 157,116');
-    } else if (emotion === 'shy') {
-      label.innerText = 'Shy 😳';
-      browL.setAttribute('d', 'M128,84 Q136,80 143,83');
-      browR.setAttribute('d', 'M157,83 Q164,80 172,84');
-      blushL.setAttribute('opacity', '0.78');
-      blushR.setAttribute('opacity', '0.78');
-      mouth.setAttribute('d', 'M146,113 Q150,116 154,113');
-    } else if (emotion === 'hacker') {
-      label.innerText = 'Hacker ⚡';
-      browL.setAttribute('d', 'M128,81 L143,83');
-      browR.setAttribute('d', 'M172,81 L157,83');
-      mouth.setAttribute('d', 'M143,113 Q150,117 157,112');
-    } else {
-      label.innerText = 'Happy ♡';
-      browL.setAttribute('d', 'M128,82 Q136,79 143,82');
-      browR.setAttribute('d', 'M157,82 Q164,79 172,82');
-      mouth.setAttribute('d', 'M143,112 Q150,119 157,112');
-    }
-  }
-
-  function setSpeaking(speaking) {
-    const avatar = document.getElementById('novaAvatar');
-    if (speaking) {
-      avatar.classList.add('speaking');
-    } else {
-      avatar.classList.remove('speaking');
-      bars.forEach(b => b.style.height = '6px');
-    }
-  }
-
-  function setListening(listening) {
-    document.getElementById('micStatusText').innerText = listening
-      ? '🎧 শুনছি... বলুন'
-      : '🎙️ "NOVA" বলে কথা বলুন...';
-  }
-
-  function updateAudioLevel(level) {
-    bars.forEach((b, idx) => {
-      const factor = Math.sin((idx / bars.length) * Math.PI);
-      const h = Math.max(5, Math.min(22, level * 22 * factor + Math.random() * 5));
-      b.style.height = h + 'px';
+  document.querySelectorAll('.nav-item, .tool-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const cmd = el.getAttribute('data-cmd');
+      if (window.NovaAndroid && window.NovaAndroid.onMenuClick) {
+        window.NovaAndroid.onMenuClick(cmd);
+      }
+      if (el.classList.contains('nav-item')) {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+      }
     });
-  }
+  });
 
-  function updateLiveTranscript(text) {
-    document.getElementById('liveTranscript').innerText = text;
-  }
+  window.setTheme = setTheme;
+  window.setState = function(state) {
+    document.getElementById('wave').style.opacity = (state === 'speaking') ? '1' : '0.3';
+  };
+  window.setAmplitude = function(a) {};
+  window.appendTranscript = function(role, text) {
+    const bubble = document.getElementById('chat-msg');
+    if (role === 'nova' || role === 'assistant') {
+      bubble.innerHTML = text.replace(/\n/g, '<br>');
+    } else {
+      bubble.innerHTML = '<span style="opacity:0.7">You:</span> ' + text;
+    }
+  };
+  window.setEmotion = function(emoji, label) {
+    document.getElementById('emotion-icon').textContent = emoji || '😊';
+    document.getElementById('emotion-text').textContent = label || 'Happy';
+  };
+  window.setMemoryUsage = function(pct) {
+    document.getElementById('mem-fill').style.width = pct + '%';
+    document.getElementById('mem-pct').textContent = pct + '%';
+  };
 
-  function setNovaReply(text) {
-    document.getElementById('novaReplyBox').innerText = text;
-  }
-
-  function updateTaskStatus(status) {
-    document.getElementById('taskStatusText').innerText = status;
-    document.getElementById('hackerTaskName').innerText = status;
-  }
-
-  function updateBattery(pct) {
-    document.getElementById('batteryText').innerText = '🔋 ' + pct + '%';
-  }
-
-  function togglePower() {
-    alwaysOn = !alwaysOn;
-    setAlwaysOnState(alwaysOn);
-    if (window.NovaBridge) NovaBridge.toggleAlwaysOn(alwaysOn);
-  }
-
-  function setAlwaysOnState(state) {
-    alwaysOn = state;
-    const btn = document.getElementById('alwaysOnBtn');
-    btn.innerText = state ? 'ON' : 'OFF';
-    btn.className = state ? 'power-btn' : 'power-btn off';
-  }
-
-  function triggerMic() {
-    if (window.NovaBridge) NovaBridge.triggerListenNow();
+  setTheme('normal');
+  if (window.NovaAndroid && window.NovaAndroid.onAvatarReady) {
+    window.NovaAndroid.onAvatarReady();
   }
 </script>
 </body>

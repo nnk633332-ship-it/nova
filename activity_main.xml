@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/normal_bg"
+    tools:context=".MainActivity">
+
+    <!-- Avatar WebView (always visible) -->
+    <WebView
+        android:id="@+id/webview_avatar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
+
+    <!-- Hacker Mode Tri-Panel Container (hidden in Normal / Standby) -->
+    <LinearLayout
+        android:id="@+id/panel_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:weightSum="3">
+
+        <!-- 1. Live Transcript -->
+        <ScrollView
+            android:id="@+id/panel_live_transcript"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/panel_bg"
+            android:padding="6dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_transcript"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="▸ Live Transcript\n"
+                android:textColor="@color/hacker_text"
+                android:textSize="11sp" />
+        </ScrollView>
+
+        <!-- 2. Task Executor -->
+        <LinearLayout
+            android:id="@+id/panel_task_executor"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="0.6"
+            android:background="@drawable/panel_bg"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="▸ Task Executor"
+                android:textColor="@color/hacker_accent"
+                android:textSize="11sp" />
+
+            <ProgressBar
+                android:id="@+id/progress_task"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:layout_marginTop="6dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/hacker_accent" />
+        </LinearLayout>
+
+        <!-- 3. System Logcat -->
+        <ScrollView
+            android:id="@+id/panel_system_logcat"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="4dp"
+            android:layout_weight="1.4"
+            android:background="@drawable/panel_bg"
+            android:padding="6dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_logcat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="▸ System Log\n"
+                android:textColor="@color/hacker_text"
+                android:textSize="10sp" />
+        </ScrollView>
+    </LinearLayout>
+
+</FrameLayout>

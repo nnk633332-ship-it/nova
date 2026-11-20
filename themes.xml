@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NOVA" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/normal_accent</item>
+        <item name="colorPrimaryVariant">@color/normal_bg</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:statusBarColor">@color/normal_bg</item>
+        <item name="android:navigationBarColor">@color/normal_bg</item>
+        <item name="android:windowBackground">@color/normal_bg</item>
+    </style>
+</resources>

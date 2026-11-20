@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Normal Theme (Blue) -->
+    <color name="normal_bg">#0A1628</color>
+    <color name="normal_accent">#007BFF</color>
+    <color name="normal_text">#E6EDF3</color>
+
+    <!-- Hacker Theme (Crimson) -->
+    <color name="hacker_bg">#0D0005</color>
+    <color name="hacker_accent">#FF0033</color>
+    <color name="hacker_text">#FF6B8A</color>
+    <color name="hacker_panel">#1A0008</color>
+
+    <!-- Common -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>
