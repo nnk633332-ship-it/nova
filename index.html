@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>NOVA V3 AI</title>
+<style>
+  :root {
+    --primary: #00d4ff;
+    --glow: rgba(0, 212, 255, 0.58);
+    --bg-grad: radial-gradient(circle at 50% 35%, #0b2948 0%, #030a16 75%, #010409 100%);
+    --panel-bg: rgba(6, 24, 48, 0.76);
+    --border-col: rgba(0, 212, 255, 0.48);
+    --text-main: #e6f7ff;
+    --accent-soft: #38bdf8;
+  }
+
+  body.shadow-mode {
+    --primary: #ff1e42;
+    --glow: rgba(255, 30, 66, 0.68);
+    --bg-grad: radial-gradient(circle at 50% 35%, #380610 0%, #120206 75%, #050002 100%);
+    --panel-bg: rgba(34, 4, 10, 0.85);
+    --border-col: rgba(255, 30, 66, 0.58);
+    --text-main: #ffe6ea;
+    --accent-soft: #ff4d6d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body {
+    background: var(--bg-grad);
+    color: var(--text-main);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: background 0.5s ease;
+  }
+
+  .cyber-grid {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Standby / Minimal Mode: Hides all extra panels, shows ONLY NOVA + Voice Pulse */
+  body.standby-mode .hud-col,
+  body.standby-mode .hacker-panels,
+  body.standby-mode .status-pills .pill {
+    display: none !important;
+  }
+  body.standby-mode .stage {
+    grid-template-columns: 1fr;
+  }
+
+  /* Top Header */
+  .top-bar {
+    position: relative; z-index: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-col);
+    box-shadow: 0 0 18px var(--glow);
+  }
+  .brand-title { font-size: 18px; font-weight: 800; letter-spacing: 1.5px; color: var(--primary); text-shadow: 0 0 10px var(--glow); }
+  .brand-sub { font-size: 11px; opacity: 0.85; }
+  .status-pills { display: flex; gap: 6px; align-items: center; font-size: 11px; }
+  .pill {
+    padding: 4px 8px; border-radius: 12px;
+    border: 1px solid var(--border-col);
+    background: rgba(0,0,0,0.4);
+  }
+
+  .power-btn {
+    padding: 5px 10px; border-radius: 14px; border: 1px solid var(--primary);
+    background: var(--primary); color: #000; font-weight: 700; font-size: 11px;
+    cursor: pointer;
+  }
+  .power-btn.off { background: transparent; color: var(--primary); }
+
+  /* Center Stage */
+  .stage {
+    position: relative; z-index: 2;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 92px 1fr 104px;
+    gap: 6px;
+    padding: 8px;
+    align-items: center;
+  }
+
+  .hud-col {
+    display: flex; flex-direction: column; gap: 8px; height: 100%; justify-content: center;
+  }
+
+  .hud-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-col);
+    border-radius: 10px;
+    padding: 8px 6px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.5), inset 0 0 8px var(--glow);
+    font-size: 10px;
+  }
+  .hud-card h4 {
+    font-size: 10px; color: var(--primary); margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    border-bottom: 1px solid var(--border-col); padding-bottom: 3px;
+  }
+  .nav-item {
+    padding: 5px 4px; margin-bottom: 3px; border-radius: 6px;
+    background: rgba(255,255,255,0.04); cursor: pointer; text-align: center;
+  }
+  .nav-item.active {
+    background: var(--primary); color: #000; font-weight: 700;
+  }
+
+  /* Rigged Character Stage */
+  .avatar-zone {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pulse-ring {
+    position: absolute;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 30px var(--glow), inset 0 0 30px var(--glow);
+    animation: pulseIdle 2.6s infinite ease-in-out;
+    pointer-events: none;
+  }
+  @keyframes pulseIdle {
+    0%, 100% { transform: scale(0.94); opacity: 0.55; }
+    50% { transform: scale(1.07); opacity: 0.95; }
+  }
+
+  svg#novaAvatar {
+    width: 220px; height: 325px; z-index: 2;
+    filter: drop-shadow(0 0 15px var(--glow));
+  }
+
+  .body-breathe { animation: breathe 3s infinite ease-in-out; transform-origin: 150px 260px; }
+  @keyframes breathe {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .head-group { transition: transform 0.35s ease; transform-origin: 150px 115px; }
+  .left-arm, .right-arm { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .left-arm { transform-origin: 115px 150px; }
+  .right-arm { transform-origin: 185px 150px; }
+  .left-leg { transform-origin: 135px 255px; animation: legSway 4s infinite ease-in-out; }
+  .right-leg { transform-origin: 165px 255px; animation: legSway 4s infinite ease-in-out reverse; }
+
+  @keyframes legSway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(2.5deg); }
+  }
+
+  /* Speaking Lip-Sync */
+  .speaking #mouthPath {
+    animation: mouthTalk 0.2s infinite alternate;
+    transform-origin: 150px 112px;
+  }
+  @keyframes mouthTalk {
+    0% { transform: scaleY(0.4); }
+    100% { transform: scaleY(1.7); }
+  }
+
+  /* Angry Gesture */
+  body.emotion-angry .left-arm { transform: rotate(-60deg); }
+  body.emotion-angry .right-arm { transform: rotate(50deg); }
+  body.emotion-angry .head-group { transform: rotate(-7deg) translateY(2px); }
+
+  /* Shy Gesture: Both Hands Cover Face */
+  body.emotion-shy .left-arm { transform: rotate(-130deg) translate(14px, -12px); }
+  body.emotion-shy .right-arm { transform: rotate(130deg) translate(-14px, -12px); }
+  body.emotion-shy .head-group { transform: rotate(7deg) translateY(4px); }
+
+  /* Happy Wave */
+  body.emotion-happy .right-arm { animation: happyWave 1.5s infinite ease-in-out; }
+  @keyframes happyWave {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(24deg); }
+  }
+
+  .speech-box {
+    position: relative; z-index: 3;
+    width: 96%;
+    background: var(--panel-bg);
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: center;
+    box-shadow: 0 0 15px var(--glow);
+    margin-top: -10px;
+  }
+
+  /* Hacker Multi-Panels */
+  .hacker-panels {
+    display: none;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    padding: 0 8px 6px 8px;
+    position: relative; z-index: 2;
+  }
+  body.shadow-mode .hacker-panels { display: grid; }
+
+  .progress-bar {
+    height: 5px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; margin-top: 4px;
+  }
+  .progress-fill {
+    height: 100%; width: 78%; background: var(--primary);
+    animation: scanMove 2.2s infinite linear;
+  }
+  @keyframes scanMove {
+    0% { width: 30%; }
+    50% { width: 95%; }
+    100% { width: 30%; }
+  }
+
+  /* Bottom Voice Bar */
+  .bottom-bar {
+    position: relative; z-index: 2;
+    padding: 8px 12px 14px 12px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border-col);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wave-row {
+    display: flex; align-items: center; justify-content: center; gap: 4px; height: 22px;
+  }
+  .wave-bar {
+    width: 4px; height: 6px; border-radius: 3px; background: var(--primary);
+    transition: height 0.1s ease;
+  }
+  .voice-trigger {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; border-radius: 20px;
+    border: 1px solid var(--primary);
+    background: rgba(0,0,0,0.45);
+    font-size: 12px; cursor: pointer;
+  }
+</style>
+</head>
+<body class="emotion-happy">
+  <div class="cyber-grid"></div>
+
+  <div class="top-bar">
+    <div>
+      <div class="brand-title" id="modeBadge">NOVA 👑</div>
+      <div class="brand-sub" id="modeSub">Your Personal AI Assistant ♡</div>
+    </div>
+    <div class="status-pills">
+      <span class="pill" id="batteryText">🔋 87%</span>
+      <button class="power-btn" id="standbyBtn" onclick="toggleStandbyUi()">FULL</button>
+      <button class="power-btn" id="alwaysOnBtn" onclick="togglePower()">ON</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="hud-col">
+      <div class="hud-card">
+        <h4>Mode</h4>
+        <div class="nav-item active" id="btnNormal" onclick="changeMode('normal')">Normal</div>
+        <div class="nav-item" id="btnShadow" onclick="changeMode('shadow')">Hacker</div>
+      </div>
+      <div class="hud-card">
+        <h4>Emotion</h4>
+        <div id="emotionLabel" style="font-weight:700; color:var(--primary); text-align:center;">Happy ♡</div>
+      </div>
+    </div>
+
+    <div class="avatar-zone">
+      <div class="pulse-ring"></div>
+      <svg id="novaAvatar" viewBox="0 0 300 420">
+        <g class="body-breathe">
+          <path d="M95,90 Q70,200 85,310 Q150,330 215,310 Q230,200 205,90 Z" fill="#0d1b2a" stroke="var(--primary)" stroke-width="2"/>
+          <g class="left-leg">
+            <rect x="126" y="255" width="16" height="115" rx="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+            <path d="M124,330 L144,330 L144,375 L122,375 Z" fill="#111827" stroke="var(--primary)" stroke-width="1.5"/>
+          </g>
+          <g class="right-leg">
+            <rect x="158" y="255" width="16" height="115" rx="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+            <path d="M156,330 L176,330 L178,375 L156,375 Z" fill="#111827" stroke="var(--primary)" stroke-width="1.5"/>
+          </g>
+          <path d="M118,145 L182,145 L195,260 L105,260 Z" fill="#111827" stroke="var(--primary)" stroke-width="2"/>
+          <polygon points="150,175 158,188 150,201 142,188" fill="var(--primary)"/>
+          <g class="left-arm">
+            <rect x="96" y="148" width="15" height="92" rx="7" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+            <circle cx="103" cy="242" r="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+          </g>
+          <g class="right-arm">
+            <rect x="189" y="148" width="15" height="92" rx="7" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+            <circle cx="197" cy="242" r="8" fill="#ffe0d6" stroke="var(--primary)" stroke-width="1.5"/>
+          </g>
+          <g class="head-group">
+            <ellipse cx="150" cy="95" rx="36" ry="42" fill="#ffe5dc" stroke="var(--primary)" stroke-width="2"/>
+            <path d="M112,88 Q120,45 150,45 Q180,45 188,88 Q170,68 150,74 Q130,68 112,88 Z" fill="#0d1b2a" stroke="var(--primary)" stroke-width="1.5"/>
+            <circle cx="122" cy="64" r="6" fill="var(--primary)"/>
+            <path id="browLeft" d="M128,82 Q136,79 143,82" stroke="#1e293b" stroke-width="2.5" fill="none"/>
+            <path id="browRight" d="M157,82 Q164,79 172,82" stroke="#1e293b" stroke-width="2.5" fill="none"/>
+            <ellipse cx="136" cy="92" rx="5.5" ry="6.5" fill="var(--primary)"/>
+            <ellipse cx="164" cy="92" rx="5.5" ry="6.5" fill="var(--primary)"/>
+            <circle cx="137" cy="90" r="2" fill="#fff"/>
+            <circle cx="165" cy="90" r="2" fill="#fff"/>
+            <ellipse id="blushL" cx="127" cy="102" rx="6" ry="3" fill="#ff4d6d" opacity="0"/>
+            <ellipse id="blushR" cx="173" cy="102" rx="6" ry="3" fill="#ff4d6d" opacity="0"/>
+            <path id="mouthPath" d="M143,112 Q150,118 157,112" stroke="#e11d48" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+
+      <div class="speech-box" id="novaReplyBox">
+        হ্যালো মাস্টার... ♡ আমি শুনছি, কী করতে হবে বলো?
+      </div>
+    </div>
+
+    <div class="hud-col">
+      <div class="hud-card">
+        <h4>System</h4>
+        <div>AI: <span style="color:var(--primary)">Active</span></div>
+        <div>Voice: <span style="color:var(--primary)">Live</span></div>
+        <div>Memory: <span style="color:var(--primary)">Saved</span></div>
+      </div>
+      <div class="hud-card">
+        <h4>Active Task</h4>
+        <div id="taskStatusText" style="color:var(--accent-soft)">Ready & Listening</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hacker 3-Panel Dashboard -->
+  <div class="hacker-panels">
+    <div class="hud-card">
+      <h4>1. Live Speech</h4>
+      <div id="liveTranscript" style="min-height:28px; color:#fff;">Listening...</div>
+    </div>
+    <div class="hud-card">
+      <h4>2. Active Task</h4>
+      <div id="hackerTaskName">NOVA Core</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+    <div class="hud-card">
+      <h4>3. System Log</h4>
+      <div>CPU: 42% | RAM: 68%</div>
+      <div style="color:var(--primary)">Memory Synced</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="wave-row" id="waveContainer"></div>
+    <div class="voice-trigger" onclick="triggerMic()">
+      <span id="micStatusText">🎙️ "NOVA" বলে কথা বলুন...</span>
+      <span style="color:var(--primary); font-weight:700;">TAP</span>
+    </div>
+  </div>
+
+<script>
+  const waveContainer = document.getElementById('waveContainer');
+  const bars = [];
+  for (let i = 0; i < 24; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    waveContainer.appendChild(b);
+    bars.push(b);
+  }
+
+  let alwaysOn = true;
+  let isStandby = false;
+
+  function setMode(mode) {
+    if (mode === 'shadow') {
+      document.body.classList.add('shadow-mode');
+      document.getElementById('modeBadge').innerText = 'NOVA 💀';
+      document.getElementById('modeSub').innerText = 'Hacker / Shadow Mode ///';
+      document.getElementById('btnShadow').classList.add('active');
+      document.getElementById('btnNormal').classList.remove('active');
+    } else {
+      document.body.classList.remove('shadow-mode');
+      document.getElementById('modeBadge').innerText = 'NOVA 👑';
+      document.getElementById('modeSub').innerText = 'Your Personal AI Assistant ♡';
+      document.getElementById('btnNormal').classList.add('active');
+      document.getElementById('btnShadow').classList.remove('active');
+    }
+  }
+
+  function changeMode(mode) {
+    setMode(mode);
+    if (window.NovaBridge) NovaBridge.switchMode(mode);
+  }
+
+  function setStandbyMode(standby) {
+    isStandby = standby;
+    const btn = document.getElementById('standbyBtn');
+    if (standby) {
+      document.body.classList.add('standby-mode');
+      btn.innerText = 'MINI';
+    } else {
+      document.body.classList.remove('standby-mode');
+      btn.innerText = 'FULL';
+    }
+  }
+
+  function toggleStandbyUi() {
+    setStandbyMode(!isStandby);
+    if (window.NovaBridge) NovaBridge.toggleStandby(isStandby);
+  }
+
+  function setEmotion(emotion) {
+    document.body.classList.remove('emotion-happy', 'emotion-angry', 'emotion-shy', 'emotion-hacker');
+    document.body.classList.add('emotion-' + emotion);
+
+    const label = document.getElementById('emotionLabel');
+    const browL = document.getElementById('browLeft');
+    const browR = document.getElementById('browRight');
+    const blushL = document.getElementById('blushL');
+    const blushR = document.getElementById('blushR');
+    const mouth = document.getElementById('mouthPath');
+
+    blushL.setAttribute('opacity', '0');
+    blushR.setAttribute('opacity', '0');
+
+    if (emotion === 'angry') {
+      label.innerText = 'Angry 💢';
+      browL.setAttribute('d', 'M128,78 L143,85');
+      browR.setAttribute('d', 'M172,78 L157,85');
+      mouth.setAttribute('d', 'M143,116 Q150,109 157,116');
+    } else if (emotion === 'shy') {
+      label.innerText = 'Shy 😳';
+      browL.setAttribute('d', 'M128,84 Q136,80 143,83');
+      browR.setAttribute('d', 'M157,83 Q164,80 172,84');
+      blushL.setAttribute('opacity', '0.78');
+      blushR.setAttribute('opacity', '0.78');
+      mouth.setAttribute('d', 'M146,113 Q150,116 154,113');
+    } else if (emotion === 'hacker') {
+      label.innerText = 'Hacker ⚡';
+      browL.setAttribute('d', 'M128,81 L143,83');
+      browR.setAttribute('d', 'M172,81 L157,83');
+      mouth.setAttribute('d', 'M143,113 Q150,117 157,112');
+    } else {
+      label.innerText = 'Happy ♡';
+      browL.setAttribute('d', 'M128,82 Q136,79 143,82');
+      browR.setAttribute('d', 'M157,82 Q164,79 172,82');
+      mouth.setAttribute('d', 'M143,112 Q150,119 157,112');
+    }
+  }
+
+  function setSpeaking(speaking) {
+    const avatar = document.getElementById('novaAvatar');
+    if (speaking) {
+      avatar.classList.add('speaking');
+    } else {
+      avatar.classList.remove('speaking');
+      bars.forEach(b => b.style.height = '6px');
+    }
+  }
+
+  function setListening(listening) {
+    document.getElementById('micStatusText').innerText = listening
+      ? '🎧 শুনছি... বলুন'
+      : '🎙️ "NOVA" বলে কথা বলুন...';
+  }
+
+  function updateAudioLevel(level) {
+    bars.forEach((b, idx) => {
+      const factor = Math.sin((idx / bars.length) * Math.PI);
+      const h = Math.max(5, Math.min(22, level * 22 * factor + Math.random() * 5));
+      b.style.height = h + 'px';
+    });
+  }
+
+  function updateLiveTranscript(text) {
+    document.getElementById('liveTranscript').innerText = text;
+  }
+
+  function setNovaReply(text) {
+    document.getElementById('novaReplyBox').innerText = text;
+  }
+
+  function updateTaskStatus(status) {
+    document.getElementById('taskStatusText').innerText = status;
+    document.getElementById('hackerTaskName').innerText = status;
+  }
+
+  function updateBattery(pct) {
+    document.getElementById('batteryText').innerText = '🔋 ' + pct + '%';
+  }
+
+  function togglePower() {
+    alwaysOn = !alwaysOn;
+    setAlwaysOnState(alwaysOn);
+    if (window.NovaBridge) NovaBridge.toggleAlwaysOn(alwaysOn);
+  }
+
+  function setAlwaysOnState(state) {
+    alwaysOn = state;
+    const btn = document.getElementById('alwaysOnBtn');
+    btn.innerText = state ? 'ON' : 'OFF';
+    btn.className = state ? 'power-btn' : 'power-btn off';
+  }
+
+  function triggerMic() {
+    if (window.NovaBridge) NovaBridge.triggerListenNow();
+  }
+</script>
+</body>
+</html>
