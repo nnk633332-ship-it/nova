@@ -1,420 +1,314 @@
 package com.nova.assistant
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.KeyguardManager
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
-import android.net.Uri
 import android.os.BatteryManager
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.view.WindowManager
-import android.webkit.JavascriptInterface
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import java.text.SimpleDateFormat
-import java.util.Date
+import android.view.Gravity
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import java.util.Locale
 
-class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
-
-    private lateinit var webView: WebView
-    private lateinit var memoryManager: MemoryManager
-    private var speechRecognizer: SpeechRecognizer? = null
-    private var tts: TextToSpeech? = null
-    private var isListening = false
-    private var isSpeaking = false
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    private val screenCaptureLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val serviceIntent = Intent(this, ScreenCaptureService::class.java).apply {
-                putExtra("resultCode", result.resultCode)
-                putExtra("data", result.data)
-            }
-            ContextCompat.startForegroundService(this, serviceIntent)
-            respond("স্ক্রিনশট সেভ করা হয়েছে।", "happy", "Screenshot Saved")
-        } else {
-            respond("স্ক্রিনশটের অনুমতি পাওয়া যায়নি।", "angry", "Permission Denied")
-        }
+class MainActivity : Activity(), TextToSpeech.OnInitListener {
+    companion object {
+        private const val AUDIO_PERMISSION = 9001
+        private const val CAPTURE_REQUEST = 9002
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    private var recognizer: SpeechRecognizer? = null
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private var conversationActive = false
+    private var awaitingCaptureResult = false
+
+    private lateinit var statusView: TextView
+    private lateinit var heardView: TextView
+    private lateinit var replyView: TextView
+    private lateinit var listenButton: Button
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setupLockScreenFlags()
-        memoryManager = MemoryManager(this)
-
-        webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.allowFileAccess = true
-            webChromeClient = WebChromeClient()
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    syncStateToUi()
-                }
-            }
-            addJavascriptInterface(NovaJsBridge(), "NovaBridge")
-            loadUrl("file:///android_asset/index.html")
-        }
-        setContentView(webView)
-
         tts = TextToSpeech(this, this)
-        checkPermissionsAndStartService()
+        buildDashboard()
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            statusView.text = "এই ফোনে Speech Recognition পরিষেবা পাওয়া যাচ্ছে না।"
+            listenButton.isEnabled = false
+        }
     }
 
-    private fun setupLockScreenFlags() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
+    private fun buildDashboard() {
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(24, 28, 24, 24)
+            setBackgroundColor(0xFF071426.toInt())
+        }
+        fun text(value: String, size: Float): TextView = TextView(this).apply {
+            text = value
+            textSize = size
+            gravity = Gravity.CENTER
+            setTextColor(0xFFFFFFFF.toInt())
+            setPadding(8, 10, 8, 10)
+        }
+
+        page.addView(text("NOVA", 32f))
+        page.addView(text("NORMAL MODE  •  Voice Assistant", 15f))
+        statusView = text("প্রস্তুত — কথা বলতে Listen চাপো", 16f)
+        heardView = text("তুমি যা বলবে তা এখানে দেখা যাবে", 14f)
+        replyView = text("NOVA-র উত্তর এখানে দেখা যাবে", 17f)
+        page.addView(statusView)
+        page.addView(heardView)
+        page.addView(replyView)
+
+        listenButton = actionButton("🎙 কথা বলা শুরু করো") { startConversation() }
+        page.addView(listenButton)
+        page.addView(actionButton("কথা বলা বন্ধ করো") { stopConversation("কথোপকথন বন্ধ।") })
+        page.addView(actionButton("স্ক্রিনশট নাও") { requestScreenshot() })
+        page.addView(actionButton("Wi-Fi সেটিংস খোলো") { openSystem(Intent(Settings.Panel.ACTION_WIFI), "Wi-Fi সেটিংস খুলছি।") })
+        page.addView(actionButton("Bluetooth সেটিংস খোলো") { openSystem(Intent(Settings.Panel.ACTION_BLUETOOTH), "Bluetooth সেটিংস খুলছি।") })
+        page.addView(actionButton("ফোনের Settings খোলো") { openSystem(Intent(Settings.ACTION_SETTINGS), "ফোনের Settings খুলছি।") })
+        page.addView(actionButton("Battery দেখাও") { showBattery() })
+        page.addView(actionButton("NOVA কী করতে পারে?") {
+            say("আমি তোমার কথা শুনতে পারি, উত্তর দিতে পারি, Wi-Fi ও Bluetooth সেটিংস খুলতে পারি, ব্যাটারি জানাতে পারি এবং তোমার অনুমতিতে একটি স্ক্রিনশট নিতে পারি।")
+        })
+        page.addView(text("মাইক্রোফোন ও স্ক্রিনশটের জন্য Android-এর অনুমতি প্রয়োজন।", 12f))
+
+        val scroll = ScrollView(this).apply { addView(page) }
+        setContentView(scroll)
+    }
+
+    private fun actionButton(label: String, action: () -> Unit): Button =
+        Button(this).apply {
+            text = label
+            isAllCaps = false
+            setOnClickListener { action() }
+        }
+
+    override fun onInit(result: Int) {
+        ttsReady = result == TextToSpeech.SUCCESS
+        if (ttsReady) {
+            val languageResult = tts?.setLanguage(Locale("bn", "IN"))
+            if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
+                languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                tts?.setLanguage(Locale.getDefault())
+            }
+            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+                override fun onDone(utteranceId: String?) {
+                    runOnUiThread {
+                        if (conversationActive && !awaitingCaptureResult) listenOnce()
+                    }
+                }
+                override fun onError(utteranceId: String?) {
+                    runOnUiThread {
+                        if (conversationActive && !awaitingCaptureResult) listenOnce()
+                    }
+                }
+            })
+        }
+    }
+
+    private fun startConversation() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION)
+            return
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            say("এই ফোনে speech recognition পাওয়া যাচ্ছে না।")
+            return
+        }
+        conversationActive = true
+        listenButton.isEnabled = false
+        listenOnce()
+    }
+
+    private fun listenOnce() {
+        if (!conversationActive || awaitingCaptureResult) return
+        try {
+            recognizer?.destroy()
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this).also { sr ->
+                sr.setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) { statusView.text = "NOVA শুনছে…" }
+                    override fun onBeginningOfSpeech() { statusView.text = "তোমার কথা শুনছি…" }
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() { statusView.text = "কথা বুঝছি…" }
+                    override fun onError(error: Int) {
+                        statusView.text = "শোনা যায়নি। আবার Listen চাপো।"
+                        conversationActive = false
+                        listenButton.isEnabled = true
+                    }
+                    override fun onResults(results: Bundle?) {
+                        val words = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val phrase = words?.firstOrNull().orEmpty()
+                        heardView.text = "তুমি বলেছ: $phrase"
+                        handleConversation(phrase)
+                    }
+                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+            val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-IN")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "bn-IN")
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            }
+            recognizer?.startListening(request)
+        } catch (_: Exception) {
+            conversationActive = false
+            listenButton.isEnabled = true
+            statusView.text = "ভয়েস পরিষেবা চালু করা যায়নি।"
+        }
+    }
+
+    private fun handleConversation(raw: String) {
+        val q = raw.trim().lowercase(Locale.ROOT)
+        if (q.isBlank()) {
+            say("আমি ঠিকমতো শুনতে পাইনি। আবার বলবে?")
+            return
+        }
+        when {
+            hasAny(q, "বন্ধ", "থামো", "stop", "exit", "শেষ করো") ->
+                stopConversation("ঠিক আছে, কথোপকথন বন্ধ করছি।")
+            hasAny(q, "স্ক্রিনশট", "screenshot", "screen shot", "আমার অ্যাপের স্ক্রিন") -> {
+                say("স্ক্রিনশট নেওয়ার জন্য Android-এর অনুমতি চাইছি।")
+                requestScreenshot()
+            }
+            hasAny(q, "ওয়াইফাই", "ওয়াইফাই", "wifi", "wi-fi") ->
+                openSystem(Intent(Settings.Panel.ACTION_WIFI), "Wi-Fi সেটিংস খুলছি।")
+            hasAny(q, "ব্লুটুথ", "bluetooth") ->
+                openSystem(Intent(Settings.Panel.ACTION_BLUETOOTH), "Bluetooth সেটিংস খুলছি।")
+            hasAny(q, "ব্যাটারি", "চার্জ", "battery", "charge") -> showBattery()
+            hasAny(q, "সেটিংস", "settings") ->
+                openSystem(Intent(Settings.ACTION_SETTINGS), "ফোনের Settings খুলছি।")
+            hasAny(q, "সাহায্য", "help", "কি করতে পারো", "কী করতে পারো") ->
+                say("তুমি আমাকে স্ক্রিনশট, Wi-Fi, Bluetooth, ব্যাটারি ও Settings সম্পর্কে বলতে পারো। সাধারণ কথার উত্তরও দিতে পারি, তবে এখনো অনলাইন AI যুক্ত হয়নি।")
+            hasAny(q, "তোমার নাম", "তুমি কে", "নোভা", "তোমার পরিচয়") ->
+                say("আমার নাম NOVA। আমি তোমার ফোনের সহকারী অ্যাপ।")
+            hasAny(q, "হ্যালো", "হাই", "hello", "hi", "নমস্কার", "কেমন আছ") ->
+                say("হ্যালো! আমি শুনছি। কী জানতে চাও?")
+            hasAny(q, "সময়", "কটা বাজে", "time") ->
+                say("ফোনের ঘড়িতে বর্তমান সময় দেখতে পারো। এখনো সময়ের আলাদা সংযোগ যোগ করা হয়নি।")
+            else ->
+                say("তোমার কথা শুনেছি। $raw । এই মুহূর্তে আমার সাধারণ কথোপকথন স্থানীয় নিয়মে চলে; পূর্ণ AI উত্তর ব্যবস্থা এখনো যুক্ত হয়নি।")
+        }
+    }
+
+    private fun hasAny(text: String, vararg terms: String): Boolean =
+        terms.any { text.contains(it) }
+
+    private fun say(message: String) {
+        statusView.text = "NOVA উত্তর দিচ্ছে…"
+        replyView.text = "NOVA: $message"
+        if (ttsReady) {
+            tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "nova_reply")
+        } else if (conversationActive && !awaitingCaptureResult) {
+            // Text remains visible; user can tap Listen again if speech output is unavailable.
+            conversationActive = false
+            listenButton.isEnabled = true
+            statusView.text = "উত্তর দেখানো হয়েছে। আবার Listen চাপো।"
+        }
+    }
+
+    private fun stopConversation(message: String) {
+        conversationActive = false
+        awaitingCaptureResult = false
+        try { recognizer?.cancel() } catch (_: Exception) {}
+        listenButton.isEnabled = true
+        statusView.text = message
+        replyView.text = "NOVA: $message"
+        if (ttsReady) tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "nova_stop")
+    }
+
+    private fun requestScreenshot() {
+        awaitingCaptureResult = true
+        val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        try {
             @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-            )
+            startActivityForResult(manager.createScreenCaptureIntent(), CAPTURE_REQUEST)
+        } catch (_: Exception) {
+            awaitingCaptureResult = false
+            say("স্ক্রিনশটের অনুমতি চাওয়া যায়নি।")
         }
     }
 
-    private fun checkPermissionsAndStartService() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 201)
+    @Deprecated("Android activity result callback")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != CAPTURE_REQUEST) return
+        awaitingCaptureResult = false
+        if (resultCode == RESULT_OK && data != null) {
+            val serviceIntent = Intent(this, ScreenCaptureService::class.java).apply {
+                putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, resultCode)
+                putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, data)
+            }
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent)
+                else startService(serviceIntent)
+                say("অনুমতি পেয়েছি। একটি স্ক্রিনশট Pictures/NOVA ফোল্ডারে সেভ করার চেষ্টা করছি।")
+            } catch (_: Exception) {
+                say("স্ক্রিনশট সার্ভিস চালু করা যায়নি।")
+            }
         } else {
-            initSpeechRecognizer()
+            say("স্ক্রিনশটের অনুমতি দেওয়া হয়নি।")
         }
+        if (conversationActive) {
+            // Continue only after the consent screen returns; the next reply cycle is user-controlled.
+            listenButton.isEnabled = false
+        }
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
+    private fun openSystem(intent: Intent, message: String) {
+        say(message)
+        conversationActive = false
+        listenButton.isEnabled = true
+        try {
             startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "এই সেটিংস স্ক্রিনটি ফোনে পাওয়া যাচ্ছে না।", Toast.LENGTH_LONG).show()
         }
+    }
 
-        if (memoryManager.isAlwaysOn()) {
-            val serviceIntent = Intent(this, NovaForegroundService::class.java)
-            ContextCompat.startForegroundService(this, serviceIntent)
-        }
+    private fun showBattery() {
+        val manager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        val level = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        val message = if (level in 0..100) "তোমার ফোনের ব্যাটারি $level শতাংশ।"
+                      else "ব্যাটারির তথ্য পাওয়া যাচ্ছে না।"
+        say(message)
     }
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 201 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            initSpeechRecognizer()
-        }
-    }
-
-    private fun initSpeechRecognizer() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) return
-        speechRecognizer?.destroy()
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-            setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-                    isListening = true
-                    evalJs("setListening(true);")
-                }
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {
-                    val level = ((rmsdB + 2f) / 12f).coerceIn(0.1f, 1.0f)
-                    evalJs("updateAudioLevel($level);")
-                }
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {
-                    isListening = false
-                    evalJs("setListening(false);")
-                }
-                override fun onError(error: Int) {
-                    isListening = false
-                    evalJs("setListening(false);")
-                    if (memoryManager.isAlwaysOn() && !isSpeaking) {
-                        mainHandler.postDelayed({ startListeningLoop() }, 1000)
-                    }
-                }
-                override fun onResults(results: Bundle?) {
-                    isListening = false
-                    evalJs("setListening(false);")
-                    val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val text = list?.firstOrNull() ?: ""
-                    if (text.isNotBlank()) {
-                        processUserCommand(text)
-                    } else if (memoryManager.isAlwaysOn()) {
-                        mainHandler.postDelayed({ startListeningLoop() }, 700)
-                    }
-                }
-                override fun onPartialResults(partialResults: Bundle?) {
-                    val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                    if (!partial.isNullOrBlank()) {
-                        evalJs("updateLiveTranscript(${escapeJs(partial)});")
-                    }
-                }
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
-        }
-        if (memoryManager.isAlwaysOn()) {
-            startListeningLoop()
-        }
-    }
-
-    private fun startListeningLoop() {
-        if (isListening || isSpeaking || !memoryManager.isAlwaysOn()) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
-
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-IN")
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        }
-        try {
-            speechRecognizer?.startListening(intent)
-        } catch (_: Exception) {}
-    }
-
-    private fun processUserCommand(rawText: String) {
-        val cmd = rawText.lowercase(Locale.getDefault())
-        evalJs("updateLiveTranscript(${escapeJs(rawText)});")
-        memoryManager.addMemory(rawText, "", memoryManager.getMode())
-
-        if (cmd.contains("দরকার নেই") || cmd.contains("মিনিমাল") || cmd.contains("চুপ থাকো") || cmd.contains("standby")) {
-            memoryManager.setStandbyMode(true)
-            evalJs("setStandbyMode(true);")
-            respond("ঠিক আছে, আমি চুপচাপ স্ক্রিনে আছি। দরকার হলে ডাক দিও।", "shy", "Standby Minimal Mode")
-            return
-        }
-        if (cmd.contains("দরকার আছে") || cmd.contains("কাজ করা দরকার") || cmd.contains("কাজ শুরু") || cmd.contains("nova") || cmd.contains("নোভা")) {
-            if (memoryManager.isStandbyMode()) {
-                memoryManager.setStandbyMode(false)
-                evalJs("setStandbyMode(false);")
-                respond("আমি প্রস্তুত আছি মাস্টার! বলো কী কাজ করতে হবে?", "happy", "Full Workspace Active")
-                return
-            }
-        }
-
-        if (cmd.contains("লক খুলে দাও") || cmd.contains("lock khule dao") || cmd.contains("unlock")) {
-            requestScreenUnlock()
-            return
-        }
-        if (cmd.contains("লক করে দাও") || cmd.contains("lock kore dao") || cmd.contains("ফোন লক")) {
-            lockPhoneScreen()
-            return
-        }
-
-        if (cmd.contains("shadow") || cmd.contains("hacker") || cmd.contains("dark") || cmd.contains("লাল") || cmd.contains("হ্যাকার") || cmd.contains("ডার্ক")) {
-            memoryManager.saveMode("shadow")
-            memoryManager.setStandbyMode(false)
-            evalJs("setStandbyMode(false); setMode('shadow');")
-            respond("হ্যাকার এবং শ্যাডো মোড চালু ও সেভ করা হয়েছে। লাইভ প্যানেল সক্রিয়।", "hacker", "Hacker/Shadow Mode Active")
-            return
-        }
-        if (cmd.contains("normal") || cmd.contains("নরমাল") || cmd.contains("নীল") || cmd.contains("blue")) {
-            memoryManager.saveMode("normal")
-            memoryManager.setStandbyMode(false)
-            evalJs("setStandbyMode(false); setMode('normal');")
-            respond("নরমাল মোডে ফিরে এসেছি এবং সেভ করেছি।", "happy", "Normal Mode Active")
-            return
-        }
-
-        if (cmd.contains("রাগ") || cmd.contains("angry") || cmd.contains("বাজে") || cmd.contains("বিরক্ত")) {
-            respond("আমি এখন ভীষণ রেগে আছি! আমার সাথে ঠিকভাবে কথা বলো।", "angry", "Emotion: Angry Gesture")
-            return
-        }
-        if (cmd.contains("লজ্জা") || cmd.contains("shy") || cmd.contains("সুন্দর") || cmd.contains("ভালোবাসি") || cmd.contains("কিউট")) {
-            respond("ইশ! এমন কথা বললে আমার খুব লজ্জা লাগে...", "shy", "Emotion: Shy Face Cover")
-            return
-        }
-
-        val dayMatch = Regex("(\d+)\s*(দিন|days?)").find(cmd)
-        if (dayMatch != null && (cmd.contains("আগে") || cmd.contains("ago") || cmd.contains("মনে"))) {
-            val days = dayMatch.groupValues[1].toIntOrNull() ?: 10
-            val recalled = memoryManager.recallByDaysAgo(days)
-            respond(recalled, "happy", "Recalled $days Days Ago")
-            return
-        }
-        if (cmd.contains("মনে আছে") || cmd.contains("কী বলেছিলাম") || cmd.contains("memory")) {
-            val recalled = memoryManager.searchMemory("")
-            respond(recalled, "happy", "Memory Recalled")
-            return
-        }
-
-        if (cmd.contains("wifi") || cmd.contains("ওয়াইফাই")) {
-            startActivity(Intent(Settings.Panel.ACTION_WIFI))
-            respond("ওয়াই-ফাই প্যানেল খুলে দিয়েছি।", "happy", "Wi-Fi Panel Opened")
-            return
-        }
-        if (cmd.contains("bluetooth") || cmd.contains("ব্লুটুথ")) {
-            startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
-            respond("ব্লুটুথ সেটিংস খুলে দিয়েছি।", "happy", "Bluetooth Opened")
-            return
-        }
-        if (cmd.contains("settings") || cmd.contains("সেটিংস")) {
-            startActivity(Intent(Settings.ACTION_SETTINGS))
-            respond("ফোনের সেটিংস খুলে দিয়েছি।", "happy", "Settings Opened")
-            return
-        }
-        if (cmd.contains("battery") || cmd.contains("ব্যাটারি") || cmd.contains("চার্জ")) {
-            val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-            val pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            respond("ফোনে এখন $pct শতাংশ চার্জ আছে।", "happy", "Battery: $pct%")
-            return
-        }
-        if (cmd.contains("screenshot") || cmd.contains("স্ক্রিনশট")) {
-            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
-            return
-        }
-        if (cmd.contains("সময়") || cmd.contains("কয়টা বাজে") || cmd.contains("time")) {
-            val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
-            respond("এখন সময় $timeStr।", "happy", "Time: $timeStr")
-            return
-        }
-
-        respond("বুঝেছি মাস্টার, তোমার কথা মনে রাখলাম: $rawText", "happy", "Command Logged")
-    }
-
-    private fun requestScreenUnlock() {
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && km.isKeyguardLocked) {
-            km.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
-                override fun onDismissSucceeded() {
-                    respond("ফোন আনলক করা হয়েছে।", "happy", "Phone Unlocked")
-                }
-                override fun onDismissError() {
-                    respond("পাসওয়ার্ড বা ফিঙ্গারপ্রিন্ট দিয়ে আনলক নিশ্চিত করুন।", "shy", "Unlock Prompt")
-                }
-            })
-        } else {
-            respond("ফোন ইতিমধ্যেই আনলক অবস্থায় আছে।", "happy", "Already Unlocked")
-        }
-    }
-
-    private fun lockPhoneScreen() {
-        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val compName = ComponentName(this, NovaDeviceAdminReceiver::class.java)
-        if (dpm.isAdminActive(compName)) {
-            respond("ফোন লক করে দিচ্ছি।", "hacker", "Locking Screen")
-            mainHandler.postDelayed({ dpm.lockNow() }, 900)
-        } else {
-            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, compName)
-                putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "ভয়েস কমান্ডে ফোন লক করার জন্য অনুমতি দিন।")
-            }
-            startActivity(intent)
-            respond("ভয়েসে লক করার জন্য ডিভাইস অ্যাডমিন অনুমতি চালু করে দিন।", "shy", "Admin Permission Needed")
-        }
-    }
-
-    private fun respond(replyText: String, emotion: String, taskStatus: String) {
-        evalJs("setEmotion('$emotion');")
-        evalJs("setNovaReply(${escapeJs(replyText)});")
-        evalJs("updateTaskStatus(${escapeJs(taskStatus)});")
-
-        isSpeaking = true
-        evalJs("setSpeaking(true);")
-        tts?.speak(replyText, TextToSpeech.QUEUE_FLUSH, null, "NOVA_UTTERANCE")
-    }
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale("bn", "IN")
-            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-                override fun onDone(utteranceId: String?) {
-                    isSpeaking = false
-                    evalJs("setSpeaking(false);")
-                    if (memoryManager.isAlwaysOn()) {
-                        mainHandler.postDelayed({ startListeningLoop() }, 450)
-                    }
-                }
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) {
-                    isSpeaking = false
-                    evalJs("setSpeaking(false);")
-                }
-            })
-        }
-    }
-
-    private fun syncStateToUi() {
-        val mode = memoryManager.getMode()
-        val alwaysOn = memoryManager.isAlwaysOn()
-        val standby = memoryManager.isStandbyMode()
-        val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        val pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        evalJs("setMode('$mode'); setAlwaysOnState($alwaysOn); setStandbyMode($standby); updateBattery($pct);")
-    }
-
-    private fun evalJs(script: String) {
-        mainHandler.post { webView.evaluateJavascript(script, null) }
-    }
-
-    private fun escapeJs(text: String): String {
-        val escaped = text.replace("\\", "\\\\")
-            .replace("'", "\\'")
-            .replace(""", "\\"")
-            .replace("
-", " ")
-        return "'$escaped'"
-    }
-
-    inner class NovaJsBridge {
-        @JavascriptInterface
-        fun toggleAlwaysOn(enabled: Boolean) {
-            memoryManager.setAlwaysOn(enabled)
-            if (enabled) {
-                val serviceIntent = Intent(this@MainActivity, NovaForegroundService::class.java)
-                ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
-                mainHandler.post { startListeningLoop() }
+        if (requestCode == AUDIO_PERMISSION) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+                startConversation()
             } else {
-                stopService(Intent(this@MainActivity, NovaForegroundService::class.java))
-                mainHandler.post { speechRecognizer?.stopListening() }
+                say("কথা শোনার জন্য মাইক্রোফোনের অনুমতি প্রয়োজন।")
             }
-        }
-
-        @JavascriptInterface
-        fun switchMode(mode: String) {
-            memoryManager.saveMode(mode)
-        }
-
-        @JavascriptInterface
-        fun toggleStandby(standby: Boolean) {
-            memoryManager.setStandbyMode(standby)
-        }
-
-        @JavascriptInterface
-        fun triggerListenNow() {
-            mainHandler.post { startListeningLoop() }
         }
     }
 
     override fun onDestroy() {
-        speechRecognizer?.destroy()
+        conversationActive = false
+        recognizer?.destroy()
+        tts?.stop()
         tts?.shutdown()
         super.onDestroy()
     }

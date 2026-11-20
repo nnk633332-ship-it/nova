@@ -1,19 +1,31 @@
-# NOVA V3 — Complete Animated Dual-Mode & Always-On Android Assistant
+# NOVA Android Project
 
-## এই ভার্সনে যা যা কোডিং করে যুক্ত করা হয়েছে:
-1. **ভয়েস কমান্ডে ফোন লক ও আনলক (`MainActivity.kt` + `NovaDeviceAdminReceiver.kt`):**
-   - **"লক করে দাও" / "Lock kore dao"** বললে ডিভাইস অ্যাডমিন পারমিশনের মাধ্যমে সাথে সাথে স্ক্রিন লক হবে।
-   - **"লক খুলে দাও" / "Unlock"** বললে লক স্ক্রিন আনলক রিকোয়েস্ট ট্রিগার হবে।
-   - ফোন আনলক করলেই (`UnlockReceiver.kt`) অটোমেটিক NOVA সামনে চলে আসবে।
-2. **দরকার অনুযায়ী মিনিমাল স্ট্যান্ডবাই ও ফুল মোড:**
-   - **"দরকার নেই" / "Standby"** বললে সব সাইড প্যানেল লুকিয়ে শুধু NOVA ক্যারেক্টার ও ভয়েস পালস স্ক্রিনে থাকবে।
-   - **"দরকার আছে" / "NOVA"** বললে আবার সব ড্যাশবোর্ড ও টুল প্যানেল খুলে যাবে।
-3. **পূর্ণাঙ্গ অ্যানিমেটেড অঙ্গভঙ্গি (`index.html`):**
-   - কথা বলার সময় ঠোঁট/মুখ নড়াচড়া (`speaking`), স্বাভাবিক শ্বাস-প্রশ্বাস ও পায়ের নড়াচড়া।
-   - **রেগে গেলে (`angry`):** ভ্রু কুঁচকে ও হাত তুলে রাগী অঙ্গভঙ্গি দেখাবে।
-   - **লজ্জা পেলে (`shy`):** দুই হাত দিয়ে মুখ ঢাকবে এবং গালে ব্লাশ আসবে।
-4. **দুটি মোড, মেমোরি সেভ ও হ্যাকার ৩-প্যানেল ড্যাশবোর্ড:**
-   - **Normal মোড (নীল থিম)** এবং **Hacker / Shadow মোড (লাল থিম)**—ভয়েস কমান্ডে সুইচ হবে এবং সেভ থাকবে।
-   - হ্যাকার মোডে নিচে ৩টি আলাদা প্যানেলে (১. লাইভ ভয়েস কথা, ২. রানিং টাস্ক ও প্রোগ্রেস বার, ৩. সিস্টেম লগ) দেখাবে।
-5. **দীর্ঘমেয়াদী স্মৃতি (`MemoryManager.kt`):**
-   - আপনার বলা সব কথা তারিখসহ সেভ থাকবে; যেমন **"১০ দিন আগে কী বলেছিলাম"** জিজ্ঞেস করলে তা বলে দেবে।
+এই Project-এ Part 4–8-এর মূল ZIP reference হিসেবে রাখা হয়েছে এবং একটি reconstructed Android app shell আছে।
+
+## Build configuration
+- Android application ID: `com.nova.assistant`
+- Compile SDK: 35
+- Minimum Android: 8.0 (API 26)
+- Target SDK: 35
+- Kotlin plugin: 2.0.21
+- Android Gradle Plugin: 8.7.3
+
+## Build status
+এই প্যাকেজে Android Gradle Plugin 8.7.3, Kotlin 2.0.21, compile SDK 35 এবং Java/Kotlin target 17 নির্দিষ্ট করা আছে। INTERNET permission-ও যোগ করা হয়েছে যাতে ভবিষ্যতে নিরাপদ backend সংযোগ করা যায়।
+
+**গুরুত্বপূর্ণ:** এই প্যাকেজে `gradlew`, `gradlew.bat` এবং `gradle-wrapper.jar` নেই। তাই এখানে APK তৈরি বা compile verification করা হয়নি। ফোন থেকে GitHub Actions দিয়ে Gradle 8.9 ব্যবহার করে APK build করার workflow যোগ করা হয়েছে। বিস্তারিত `BUILD_ON_GITHUB_BN.md`-তে।
+
+## Features currently in source
+- Bengali speech input via Android SpeechRecognizer (`bn-IN`)
+- Bengali text-to-speech via Android TTS
+- Basic local command handling
+- Wi-Fi, Bluetooth, Settings shortcuts
+- Battery level
+- One-shot screenshot flow requiring Android's explicit screen-capture consent
+
+## Important limitations
+- INTERNET permission আছে, কিন্তু কোনো online AI backend/API endpoint বা অনুমোদিত credential দেওয়া হয়নি; তাই অনলাইন AI এখনো চালু নয়। API secret কখনো APK-র মধ্যে hard-code করা উচিত নয়.
+- No always-on wake-word service is implemented.
+- পাওয়া reference image `app/src/main/res/drawable-nodpi/nova_normal_reference.png`-এ রাখা আছে। এটি নীল avatar-এর একটি ছোট reference; সম্পূর্ণ Normal/SHADOW split dashboard-এর locked artwork/layout নয়। তাই সেটি দিয়ে আসল dashboard-এর বদলি design বানানো হয়নি.
+- Original Parts 1–3 source files were not available; the current base is a reconstruction, not a verbatim recovery.
+- See `docs/MISSING_ITEMS_BN.md` for details.
