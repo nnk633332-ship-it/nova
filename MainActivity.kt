@@ -202,7 +202,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         evalJs("updateLiveTranscript(${escapeJs(rawText)});")
         memoryManager.addMemory(rawText, "", memoryManager.getMode())
 
-        // 1. Standby / Minimal Mode ("দরকার নেই", "চুপ থাকো" vs "দরকার আছে", "কাজ শুরু করো")
         if (cmd.contains("দরকার নেই") || cmd.contains("মিনিমাল") || cmd.contains("চুপ থাকো") || cmd.contains("standby")) {
             memoryManager.setStandbyMode(true)
             evalJs("setStandbyMode(true);")
@@ -218,7 +217,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
 
-        // 2. Lock / Unlock Voice Controls
         if (cmd.contains("লক খুলে দাও") || cmd.contains("lock khule dao") || cmd.contains("unlock")) {
             requestScreenUnlock()
             return
@@ -228,7 +226,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        // 3. Mode Switching (Saved persistently)
         if (cmd.contains("shadow") || cmd.contains("hacker") || cmd.contains("dark") || cmd.contains("লাল") || cmd.contains("হ্যাকার") || cmd.contains("ডার্ক")) {
             memoryManager.saveMode("shadow")
             memoryManager.setStandbyMode(false)
@@ -244,7 +241,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        // 4. Emotion & Gesture Triggers
         if (cmd.contains("রাগ") || cmd.contains("angry") || cmd.contains("বাজে") || cmd.contains("বিরক্ত")) {
             respond("আমি এখন ভীষণ রেগে আছি! আমার সাথে ঠিকভাবে কথা বলো।", "angry", "Emotion: Angry Gesture")
             return
@@ -254,7 +250,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        // 5. Memory Recall ("১০ দিন আগে", "আগে কী বলেছিলাম")
         val dayMatch = Regex("(\d+)\s*(দিন|days?)").find(cmd)
         if (dayMatch != null && (cmd.contains("আগে") || cmd.contains("ago") || cmd.contains("মনে"))) {
             val days = dayMatch.groupValues[1].toIntOrNull() ?: 10
@@ -268,7 +263,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        // 6. Phone Actions
         if (cmd.contains("wifi") || cmd.contains("ওয়াইফাই")) {
             startActivity(Intent(Settings.Panel.ACTION_WIFI))
             respond("ওয়াই-ফাই প্যানেল খুলে দিয়েছি।", "happy", "Wi-Fi Panel Opened")
@@ -301,7 +295,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        // 7. Default Response
         respond("বুঝেছি মাস্টার, তোমার কথা মনে রাখলাম: $rawText", "happy", "Command Logged")
     }
 
@@ -382,9 +375,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun escapeJs(text: String): String {
-        val escaped = text.replace("\", "\\")
-            .replace("'", "\'")
-            .replace(""", "\"")
+        val escaped = text.replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace(""", "\\"")
             .replace("
 ", " ")
         return "'$escaped'"

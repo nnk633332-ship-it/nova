@@ -45,7 +45,6 @@
     background-size: 28px 28px;
   }
 
-  /* Standby / Minimal Mode: Hides all extra panels, shows ONLY NOVA + Voice Pulse */
   body.standby-mode .hud-col,
   body.standby-mode .hacker-panels,
   body.standby-mode .status-pills .pill {
@@ -55,7 +54,6 @@
     grid-template-columns: 1fr;
   }
 
-  /* Top Header */
   .top-bar {
     position: relative; z-index: 2;
     display: flex; justify-content: space-between; align-items: center;
@@ -80,7 +78,6 @@
   }
   .power-btn.off { background: transparent; color: var(--primary); }
 
-  /* Center Stage */
   .stage {
     position: relative; z-index: 2;
     flex: 1;
@@ -116,7 +113,6 @@
     background: var(--primary); color: #000; font-weight: 700;
   }
 
-  /* Rigged Character Stage */
   .avatar-zone {
     position: relative;
     height: 100%;
@@ -163,7 +159,6 @@
     50% { transform: rotate(2.5deg); }
   }
 
-  /* Speaking Lip-Sync */
   .speaking #mouthPath {
     animation: mouthTalk 0.2s infinite alternate;
     transform-origin: 150px 112px;
@@ -173,17 +168,14 @@
     100% { transform: scaleY(1.7); }
   }
 
-  /* Angry Gesture */
   body.emotion-angry .left-arm { transform: rotate(-60deg); }
   body.emotion-angry .right-arm { transform: rotate(50deg); }
   body.emotion-angry .head-group { transform: rotate(-7deg) translateY(2px); }
 
-  /* Shy Gesture: Both Hands Cover Face */
   body.emotion-shy .left-arm { transform: rotate(-130deg) translate(14px, -12px); }
   body.emotion-shy .right-arm { transform: rotate(130deg) translate(-14px, -12px); }
   body.emotion-shy .head-group { transform: rotate(7deg) translateY(4px); }
 
-  /* Happy Wave */
   body.emotion-happy .right-arm { animation: happyWave 1.5s infinite ease-in-out; }
   @keyframes happyWave {
     0%, 100% { transform: rotate(0deg); }
@@ -203,7 +195,6 @@
     margin-top: -10px;
   }
 
-  /* Hacker Multi-Panels */
   .hacker-panels {
     display: none;
     grid-template-columns: 1fr 1fr 1fr;
@@ -226,7 +217,6 @@
     100% { width: 30%; }
   }
 
-  /* Bottom Voice Bar */
   .bottom-bar {
     position: relative; z-index: 2;
     padding: 8px 12px 14px 12px;
@@ -339,7 +329,6 @@
     </div>
   </div>
 
-  <!-- Hacker 3-Panel Dashboard -->
   <div class="hacker-panels">
     <div class="hud-card">
       <h4>1. Live Speech</h4>

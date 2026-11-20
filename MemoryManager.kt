@@ -71,9 +71,7 @@ class MemoryManager(context: Context) {
         return if (matches.isEmpty()) {
             "$daysAgo দিন আগে ($targetDay) কোনো কথা সেভ করা নেই।"
         } else {
-            "$daysAgo দিন আগে আপনি বলেছিলেন:
-" + matches.takeLast(3).joinToString("
-")
+            "$daysAgo দিন আগে আপনি বলেছিলেন:\n" + matches.takeLast(3).joinToString("\n")
         }
     }
 
@@ -88,9 +86,5 @@ class MemoryManager(context: Context) {
             }
         }
         return "এই বিষয়ে পুরনো কোনো কথা খুঁজে পাইনি।"
-    }
-
-    fun getRecentLogsJson(): String {
-        return prefs.getString("memory_logs", "[]") ?: "[]"
     }
 }
