@@ -1,0 +1,5 @@
+Gradle Wrapper-এর gradle-wrapper.properties ফাইল রাখা হয়েছে। কিন্তু gradlew, gradlew.bat এবং gradle-wrapper.jar অনুপস্থিত। পুরোনো Part 4–8 ZIP-গুলোর মধ্যেও এই Wrapper ফাইলগুলো পাওয়া যায়নি।
+
+এই কারণে ভুয়া/placeholder JAR যোগ করা হয়নি। GitHub Actions workflow-তে Gradle 8.9 সরাসরি setup করে build চালানোর ব্যবস্থা যোগ করা হয়েছে; এটি Wrapper-এর বিকল্প CI পদ্ধতি, Wrapper সম্পূর্ণ হয়েছে এমন নয়।
+
+সঠিক Wrapper তৈরি করতে Gradle 8.9 installation-এ `gradle wrapper --gradle-version 8.9` চালিয়ে তৈরি হওয়া ফাইলগুলো যাচাই করে যোগ করতে হবে।
