@@ -1,0 +1,23 @@
+NOVA - ALL IN ONE PACKAGE
+
+এই ZIP-এর ভিতরে NOVA-র একসাথে রাখা ফাইলগুলো আছে।
+
+01_MAIN_ANDROID_PROJECT:
+  সর্বশেষ মেরামত করা Android Studio project-এর খোলা source files.
+  এটিই মূল Android project; তবে APK build করে পরীক্ষা করা হয়নি।
+
+02_CHROME_DEMO:
+  Chrome-এ খোলার জন্য আগের NOVA_Test_Demo.zip.
+
+03_OLD_PARTS:
+  আগের phase/part-এর source ZIP-গুলো reference হিসেবে রাখা হয়েছে।
+
+04_REFERENCE:
+  NOVA-র দেওয়া dashboard reference image.
+
+05_DOCUMENTATION:
+  আগের Bengali details report.
+
+গুরুত্বপূর্ণ:
+এটি একসাথে গুছিয়ে দেওয়া ZIP package, installable APK নয়।
+Android SDK/Gradle build environment না থাকায় APK compile ও test করা হয়নি।

@@ -1,0 +1,44 @@
+NOVA PART 9 — PART 1 TO 8 COMBINED PROJECT DETAILS
+
+1) একত্র করা হয়েছে
+- Part 4, 5, 6, 7 এবং Part 8-এর Library ZIP-গুলো খুলে source পরীক্ষা করে এক Android Studio project-এ সাজানো হয়েছে।
+- Part 1, 2, 3-এর আলাদা Android source ZIP পাওয়া যায়নি। আগের আলোচনায় নিশ্চিত হওয়া বেসিক assistant/launcher ধারণা ধরে প্রয়োজনীয় ভিত্তি পুনর্গঠন করা হয়েছে; অজানা পুরোনো feature হুবহু আছে বলে দাবি করা হচ্ছে না।
+- পাওয়া Part 4–8-এর মূল ZIP-গুলো combined ZIP-এর reference/original_parts_4_to_8 ফোল্ডারেও রাখা হয়েছে।
+
+2) যুক্ত ফিচার
+- NOVA Android launcher app
+- Bengali bn-IN tap-to-talk voice input
+- Text-to-Speech reply (ফোনে বাংলা voice support থাকলে)
+- Listen ও Stop বোতাম
+- Wi-Fi এবং Bluetooth system panel
+- Device Settings খোলা
+- Battery percentage
+- Help/greeting/name/time-এর local response
+- Screenshot command ও button
+- Android-এর screen-capture consent নেওয়ার পর একবার screenshot Pictures/NOVA-তে save করার চেষ্টা
+
+3) নিরাপত্তা/অনুমতি
+- NOVA নিজে থেকে background-এ সবসময় microphone শোনে না।
+- Listen চাপলে এবং microphone permission দিলে voice input চালু হয়।
+- Screenshot-এর আগে Android-এর নিজস্ব অনুমতি prompt আসে; অনুমতি ছাড়া capture হবে না।
+
+4) এখনো অসম্পূর্ণ
+- পূর্ণ AI conversation/API যুক্ত হয়নি; সাধারণ কথার উত্তর সীমিত local rules।
+- সব ফোনে বাংলা speech recognition বা বাংলা TTS নাও চলতে পারে; এটি ফোনের speech services-এর ওপর নির্ভরশীল।
+- আগের নির্বাচিত split-screen Normal/SHADOW dashboard-এর সঠিক original asset পাওয়া যায়নি, তাই অনুমান করে অন্য ছবি বসানো হয়নি।
+- Protected screen/app-এর screenshot কালো/ফাঁকা হতে পারে।
+
+5) পরীক্ষা
+- ZIP archive CRC test: PASS
+- AndroidManifest.xml XML parse: PASS
+- MainActivity.kt ও ScreenCaptureService.kt project-এ উপস্থিত: PASS
+- Android SDK/Gradle build tools এই পরিবেশে ছিল না। তাই APK compile, emulator test বা বাস্তব ফোনে voice/screenshot test করা যায়নি।
+- ফলে এই পর্যায়ে বলা যাবে project archive/structure ঠিক আছে; কিন্তু Android Studio-তে Gradle sync ও APK build না করা পর্যন্ত app সম্পূর্ণ কাজ করছে বলে নিশ্চিত করা যাবে না।
+
+6) Android Studio-তে চালানোর ধাপ
+- ZIP extract করো।
+- Android Studio-তে extracted NOVA_Part9_Combined_Project folder Open করো।
+- Gradle sync শেষ হতে দাও।
+- ফোনে install/run করো।
+- প্রথমবার Listen চাপলে Microphone permission দাও।
+- Screenshot নিলে Android screen capture consent prompt-এ নিজে অনুমতি দাও।
